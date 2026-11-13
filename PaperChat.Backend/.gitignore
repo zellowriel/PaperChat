@@ -1,0 +1,10 @@
+**/bin/
+**/obj/
+.vs/
+.vscode/
+.idea/
+**/App_Data/files/**
+!**/App_Data/files/.gitkeep
+*.user
+*.suo
+.env

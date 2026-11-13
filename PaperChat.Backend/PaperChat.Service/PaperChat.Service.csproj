@@ -1,0 +1,27 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+	  <TargetFramework>net10.0</TargetFramework>
+    <AssemblyName>PaperChat.Service</AssemblyName>
+    <RootNamespace>PaperChat.Service</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.Identity.Core" Version="10.0.15" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.15" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.15" />
+    <PackageReference Include="PdfPig" Version="0.1.16" />
+	  <PackageReference Include="Microsoft.Extensions.Identity.Core"
+				  Version="10.0.15" />
+
+	  <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions"
+						Version="10.0.15" />
+
+	  <PackageReference Include="Microsoft.Extensions.Logging.Abstractions"
+						Version="10.0.15" />
+
+	  <PackageReference Include="Microsoft.Extensions.Options"
+						Version="10.0.15" />
+
+	  <PackageReference Include="PdfPig"
+						Version="0.1.16" />
+  </ItemGroup>
+</Project>

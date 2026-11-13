@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+  <PropertyGroup>
+	<TargetFramework>net10.0</TargetFramework>
+    <AssemblyName>PaperChat.API</AssemblyName>
+    <RootNamespace>PaperChat.API</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\PaperChat.Service\PaperChat.Service.csproj" />
+    <ProjectReference Include="..\PaperChat.Repositories\PaperChat.Repositories.csproj" />
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.15" />
+    <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="8.23.0" />
+    <PackageReference Include="Swashbuckle.AspNetCore" Version="10.3.1" />
+  </ItemGroup>
+</Project>
