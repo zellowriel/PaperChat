@@ -1,6 +1,6 @@
 # PaperChat Backend API
 
-Source backend theo cấu trúc 3 project `PaperChat.API`, `PaperChat.Service`, `PaperChat.Repositories`, áp dụng REST API, JWT, EF Core và PostgreSQL.
+Source backend theo cấu trúc 3 project `PaperChat.API`, `PaperChat.Service`, `PaperChat.Repositories`, áp dụng REST API, Firebase ID token/JWT, EF Core và PostgreSQL.
 
 ## 1. Yêu cầu
 
@@ -21,11 +21,18 @@ PaperChat.API  --->  PaperChat.Service  <---  PaperChat.Repositories
 - API là composition root, chịu trách nhiệm đăng ký DI, JWT, HTTP context và middleware.
 - `AppDbContext` map rõ tên bảng/cột lowercase vì script PostgreSQL tạo identifier không đặt trong dấu quote. Điều này giúp EF Core khớp với database đã tạo bằng SQL.
 
-## 3. Tạo database
+## 3. Tạo schema database
 
-Chạy `database/01_create_database.sql` riêng bằng tài khoản có quyền tạo database. Sau đó kết nối vào `paperchat_db` rồi chạy `database/02_create_tables.sql`.
+Với Neon, mở SQL Editor của database đã chọn (thường là `neondb`) và chạy
+`database/02_create_tables.sql`, sau đó chạy
+`database/03_add_firebase_uid.sql`. Hai script tạo các bảng nền và cột Firebase
+UID; chạy chúng trước khi triển khai API mới.
 
-Nếu bạn đã tạo DB/bảng bằng SQL ở câu hỏi, không cần chạy lại; chỉ cần kiểm tra tên cột là lowercase như PostgreSQL mặc định.
+`02_create_tables.sql` dùng `IF NOT EXISTS` để không tạo lại bảng/index đã có.
+Nếu database đã chứa dữ liệu, hãy kiểm tra tên bảng/cột lowercase và kiểu dữ
+liệu khớp với `AppDbContext`; không chạy lại các script trên schema khác biệt
+mà chưa sao lưu. Với PostgreSQL tự quản lý, tạo database trước bằng công cụ của
+nhà cung cấp rồi chạy các script trong đúng database đó.
 
 ## 4. Cấu hình
 
@@ -34,10 +41,24 @@ Chỉnh `PaperChat.API/appsettings.json` cho local development, hoặc ưu tiên
 ```bash
 ConnectionStrings__DefaultConnection="Host=localhost;Port=5432;Database=paperchat_db;Username=postgres;Password=YOUR_DB_PASSWORD"
 Jwt__Key="REPLACE_WITH_A_RANDOM_SECRET_AT_LEAST_32_BYTES"
+Firebase__ProjectId="YOUR_FIREBASE_PROJECT_ID"
+Gemini__ApiKey="YOUR_GEMINI_API_KEY"
 Storage__RootPath="App_Data/files"
 ```
 
 Không commit database password hoặc JWT signing key thật lên Git. Mẫu `Jwt:Key` trong appsettings chỉ là key development; phải thay bằng secret riêng.
+`Gemini:ApiKey` cũng chỉ cấu hình qua biến môi trường hoặc secret manager.
+`Firebase:ProjectId` phải khớp với project phát hành Firebase ID token. Backend
+chấp nhận Firebase ID token và JWT cũ trong giai đoạn chuyển đổi.
+
+Với Docker Compose, tạo file `.env` cục bộ trong thư mục `PaperChat.Backend`
+(file này đã được Git ignore) và đặt `FIREBASE_PROJECT_ID`,
+`NEON_CONNECTION_STRING`, cùng `GEMINI_API_KEY`; sau đó chạy
+`docker compose up --build`. Không đưa các giá trị bí mật vào file compose.
+
+Lần đầu Firebase UID gọi API, backend tự tạo hoặc liên kết hồ sơ SQL theo email.
+Để liên kết an toàn với tài khoản SQL cũ, email Firebase phải được xác minh;
+thư viện PDF, tiến độ đọc và lịch sử chat hiện có vẫn được giữ nguyên.
 
 ## 5. Chạy API
 
@@ -55,8 +76,8 @@ Swagger chạy trong Development tại `/swagger`. Khi chạy production, cấu 
 
 | Method | Endpoint | Auth | Mô tả |
 |---|---|---:|---|
-| POST | `/api/v1/auth/register` | No | Tạo tài khoản, trả JWT |
-| POST | `/api/v1/auth/login` | No | Đăng nhập, trả JWT |
+| POST | `/api/v1/auth/register` | No | Legacy: tạo tài khoản SQL, trả JWT |
+| POST | `/api/v1/auth/login` | No | Legacy: đăng nhập SQL, trả JWT |
 | GET | `/api/v1/users/me` | Yes | Hồ sơ và dung lượng hiện tại |
 | GET | `/api/v1/documents?page=1&pageSize=20` | Yes | Danh sách tài liệu của user |
 | POST | `/api/v1/documents` | Yes | Upload PDF bằng multipart/form-data |
@@ -70,7 +91,8 @@ Hai endpoint mở rộng hữu ích cho màn hình đọc PDF của Flutter:
 - `GET /api/v1/documents/{id}/file`: tải/đọc PDF an toàn qua API thay vì expose đường dẫn filesystem.
 - `PATCH /api/v1/documents/{id}/progress`: cập nhật `readingProgress` (0–100).
 
-Với endpoint cần JWT, gửi header:
+Flutter hiện dùng Firebase Authentication; hai endpoint đăng ký/đăng nhập SQL
+là legacy. Với endpoint được bảo vệ, gửi Firebase ID token hoặc JWT legacy:
 
 ```http
 Authorization: Bearer <access_token>
@@ -103,11 +125,18 @@ Authorization: Bearer <access_token>
 
 Nếu `chatHistory` rỗng, backend dùng lịch sử chat đã lưu trong DB làm context. User chỉ đọc được tài liệu và lịch sử của chính mình.
 
-## 7. Phần cần tích hợp tiếp
+## 7. Giới hạn hiện tại
 
-- **AI/RAG:** `IAiChatService` là port. Development dùng `DevelopmentMockAiChatService` để kiểm tra luồng API; production trả `503` cho đến khi bạn cài adapter OpenAI/Gemini thật. Adapter thật cần tìm kiếm vector theo `documentId`, tổng hợp câu trả lời và trả `CitationPage` có căn cứ. Chưa có PDF text extraction/embedding trong scaffold này.
-- **PDF metadata:** `PageCount` khởi tạo `0`; cần thêm PDF parser/processing worker để đếm trang và trích xuất text.
-- **Storage:** `LocalFileStorage` là adapter local. Khi deploy, thay bằng S3/MinIO/Azure Blob nhưng giữ nguyên `IFileStorage`.
+- **PDF + AI:** `PdfProcessingService` trích xuất text và số trang bằng PdfPig.
+  PDF scan cần OCR, hiện chưa hỗ trợ. Chat gửi toàn bộ text của tài liệu cho
+  Gemini; chưa có embeddings/vector search nên đây chưa phải RAG đầy đủ. Nội
+  dung vượt quá `Gemini:MaxDocumentCharacters` bị từ chối.
+- **Gemini:** API thật được đăng ký qua `GeminiAiChatService`; cần cấu hình
+  `Gemini:ApiKey` hợp lệ để chat hoạt động. `DevelopmentMockAiChatService` còn
+  trong source nhưng không được đăng ký làm implementation hiện tại.
+- **Storage:** `LocalFileStorage` lưu file và text trên máy host. Docker Compose
+  bind-mount `App_Data`, phù hợp demo một máy; khi deploy nhiều instance cần
+  object storage như S3/MinIO/Azure Blob.
 - **Quota Plan PRO:** đề bài chỉ nêu mức 10 GB và `FREE/PRO`, chưa định nghĩa quota riêng cho PRO; hiện scaffold áp dụng 10 GB cho mọi plan.
 - **Download:** File được giữ private trong `Storage:RootPath`, không public static. Client gọi endpoint `/file` có authorize.
 

@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 
-import '../core/app_controller.dart';
 import '../core/app_theme.dart';
 import '../widgets/common.dart';
+import '../viewmodels/app_view_model.dart';
 
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({super.key, required this.controller});
 
-  final AppController controller;
+  final AppViewModel controller;
 
   Future<void> _confirmLogout(BuildContext context) async {
     final shouldLogout = await showDialog<bool>(
@@ -40,8 +40,8 @@ class SettingsScreen extends StatelessWidget {
         final ratio = user.storageLimitBytes <= 0
             ? 0.0
             : (user.storageUsedBytes / user.storageLimitBytes)
-                .clamp(0.0, 1.0)
-                .toDouble();
+                  .clamp(0.0, 1.0)
+                  .toDouble();
         final fullName = user.fullName?.trim().isNotEmpty == true
             ? user.fullName!.trim()
             : 'PaperChat User';
@@ -138,7 +138,9 @@ class SettingsScreen extends StatelessWidget {
                   secondary: const _LeadingIcon(Icons.dark_mode_outlined),
                   title: const Text('Chế độ Sáng / Tối'),
                   subtitle: Text(
-                    controller.isDarkMode ? 'Đang bật chế độ tối' : 'Đang dùng giao diện sáng',
+                    controller.isDarkMode
+                        ? 'Đang bật chế độ tối'
+                        : 'Đang dùng giao diện sáng',
                     style: const TextStyle(fontSize: 12),
                   ),
                   activeTrackColor: AppColors.primary,
@@ -179,7 +181,9 @@ class SettingsScreen extends StatelessWidget {
                           value: ratio,
                           minHeight: 8,
                           backgroundColor: AppColors.surfaceBlue,
-                          valueColor: const AlwaysStoppedAnimation(AppColors.primary),
+                          valueColor: const AlwaysStoppedAnimation(
+                            AppColors.primary,
+                          ),
                         ),
                       ),
                       const SizedBox(height: 8),
@@ -263,17 +267,17 @@ class _GroupLabel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Padding(
-        padding: const EdgeInsets.only(left: 3, bottom: 10),
-        child: Text(
-          text,
-          style: const TextStyle(
-            color: AppColors.muted,
-            fontSize: 11,
-            fontWeight: FontWeight.w800,
-            letterSpacing: 0.8,
-          ),
-        ),
-      );
+    padding: const EdgeInsets.only(left: 3, bottom: 10),
+    child: Text(
+      text,
+      style: const TextStyle(
+        color: AppColors.muted,
+        fontSize: 11,
+        fontWeight: FontWeight.w800,
+        letterSpacing: 0.8,
+      ),
+    ),
+  );
 }
 
 class _LeadingIcon extends StatelessWidget {
@@ -282,12 +286,12 @@ class _LeadingIcon extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Container(
-        width: 40,
-        height: 40,
-        decoration: BoxDecoration(
-          color: AppColors.surfaceBlue,
-          borderRadius: BorderRadius.circular(9),
-        ),
-        child: Icon(icon, color: AppColors.primary, size: 21),
-      );
+    width: 40,
+    height: 40,
+    decoration: BoxDecoration(
+      color: AppColors.surfaceBlue,
+      borderRadius: BorderRadius.circular(9),
+    ),
+    child: Icon(icon, color: AppColors.primary, size: 21),
+  );
 }

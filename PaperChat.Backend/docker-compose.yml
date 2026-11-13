@@ -9,8 +9,9 @@
     environment:
       ASPNETCORE_ENVIRONMENT: Development
       ASPNETCORE_URLS: http://+:8080
-      # Chuỗi kết nối Neon.tech đã được chuyển đổi sang chuẩn của Entity Framework Core / Npgsql
-      ConnectionStrings__DefaultConnection: "Host=ep-misty-violet-a12bzdlq-pooler.ap-southeast-1.aws.neon.tech;Database=neondb;Username=neondb_owner;Password=npg_Hbs0VEoCAdP8;SSL Mode=Require;Trust Server Certificate=true;"
+      Firebase__ProjectId: "${FIREBASE_PROJECT_ID:?Set FIREBASE_PROJECT_ID}"
+      ConnectionStrings__DefaultConnection: "${NEON_CONNECTION_STRING:?Set NEON_CONNECTION_STRING}"
+      Gemini__ApiKey: "${GEMINI_API_KEY:?Set GEMINI_API_KEY}"
     # ĐỒNG BỘ THƯ MỤC CHỨA FILE VÀO CONTAINER
     volumes:
       - ./App_Data:/app/App_Data

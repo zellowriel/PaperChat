@@ -1,24 +1,22 @@
 import 'package:flutter/material.dart';
 
-import '../core/app_controller.dart';
 import '../core/app_theme.dart';
 import '../models/api_models.dart';
 import '../widgets/common.dart';
+import '../viewmodels/app_view_model.dart';
 import 'reader_screen.dart';
 import 'upload_screen.dart';
 
-void openUpload(BuildContext context, AppController controller) {
+void openUpload(BuildContext context, AppViewModel controller) {
   Navigator.of(context).push(
-    MaterialPageRoute(
-      builder: (_) => UploadScreen(controller: controller),
-    ),
+    MaterialPageRoute(builder: (_) => UploadScreen(controller: controller)),
   );
 }
 
 class LibraryScreen extends StatefulWidget {
   const LibraryScreen({super.key, required this.controller});
 
-  final AppController controller;
+  final AppViewModel controller;
 
   @override
   State<LibraryScreen> createState() => _LibraryScreenState();
@@ -59,8 +57,11 @@ class _LibraryScreenState extends State<LibraryScreen> {
     } else if (_sort == 'progress') {
       items.sort((a, b) => b.readingProgress.compareTo(a.readingProgress));
     } else {
-      items.sort((a, b) =>
-          (b.createdAt ?? DateTime(2000)).compareTo(a.createdAt ?? DateTime(2000)));
+      items.sort(
+        (a, b) => (b.createdAt ?? DateTime(2000)).compareTo(
+          a.createdAt ?? DateTime(2000),
+        ),
+      );
     }
     return items;
   }
@@ -69,10 +70,8 @@ class _LibraryScreenState extends State<LibraryScreen> {
     widget.controller.selectDocument(document);
     await Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (_) => ReaderScreen(
-          controller: widget.controller,
-          document: document,
-        ),
+        builder: (_) =>
+            ReaderScreen(controller: widget.controller, document: document),
       ),
     );
   }
@@ -122,8 +121,11 @@ class _LibraryScreenState extends State<LibraryScreen> {
                 color: AppColors.primary,
                 borderRadius: BorderRadius.circular(9),
               ),
-              child: const Icon(Icons.menu_book_rounded,
-                  color: Colors.white, size: 22),
+              child: const Icon(
+                Icons.menu_book_rounded,
+                color: Colors.white,
+                size: 22,
+              ),
             ),
             const SizedBox(width: 10),
             const Text('Thư Viện'),
@@ -179,15 +181,21 @@ class _LibraryScreenState extends State<LibraryScreen> {
             const SizedBox(height: 12),
             if (user != null)
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 10),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 13,
+                  vertical: 10,
+                ),
                 decoration: BoxDecoration(
                   color: AppColors.surfaceBlue,
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Row(
                   children: [
-                    const Icon(Icons.cloud_done_outlined,
-                        size: 18, color: AppColors.primary),
+                    const Icon(
+                      Icons.cloud_done_outlined,
+                      size: 18,
+                      color: AppColors.primary,
+                    ),
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
@@ -224,8 +232,11 @@ class _LibraryScreenState extends State<LibraryScreen> {
                   children: [
                     Text('Sắp xếp', style: TextStyle(color: AppColors.primary)),
                     SizedBox(width: 4),
-                    Icon(Icons.swap_vert_rounded,
-                        size: 18, color: AppColors.primary),
+                    Icon(
+                      Icons.swap_vert_rounded,
+                      size: 18,
+                      color: AppColors.primary,
+                    ),
                   ],
                 ),
               ),
@@ -249,7 +260,8 @@ class _LibraryScreenState extends State<LibraryScreen> {
                       : 'Thử tìm bằng một từ khóa khác.',
                   action: _search.text.isEmpty
                       ? FilledButton.icon(
-                          onPressed: () => openUpload(context, widget.controller),
+                          onPressed: () =>
+                              openUpload(context, widget.controller),
                           icon: const Icon(Icons.add),
                           label: const Text('Tải PDF lên'),
                         )
@@ -289,7 +301,9 @@ class _DocumentCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final progress = document.readingProgress.clamp(0, 100);
     final author = document.authors?.trim();
-    final progressColor = progress >= 85 ? AppColors.primaryDark : AppColors.primary;
+    final progressColor = progress >= 85
+        ? AppColors.primaryDark
+        : AppColors.primary;
 
     return Card(
       child: InkWell(
@@ -367,8 +381,11 @@ class _DocumentCard extends StatelessWidget {
                   children: [
                     Row(
                       children: [
-                        const Icon(Icons.menu_book_outlined,
-                            color: AppColors.primary, size: 15),
+                        const Icon(
+                          Icons.menu_book_outlined,
+                          color: AppColors.primary,
+                          size: 15,
+                        ),
                         const SizedBox(width: 6),
                         Expanded(
                           child: Text(
@@ -410,7 +427,10 @@ class _DocumentCard extends StatelessWidget {
                   const Spacer(),
                   Text(
                     formatDate(document.createdAt),
-                    style: const TextStyle(color: AppColors.muted, fontSize: 11),
+                    style: const TextStyle(
+                      color: AppColors.muted,
+                      fontSize: 11,
+                    ),
                   ),
                 ],
               ),

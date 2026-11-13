@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 
-import '../core/app_controller.dart';
 import '../core/app_theme.dart';
 import '../core/api_client.dart';
 import '../models/api_models.dart';
 import 'common.dart';
+import '../viewmodels/app_view_model.dart';
 
 class ChatConversation extends StatefulWidget {
   const ChatConversation({
@@ -16,7 +16,7 @@ class ChatConversation extends StatefulWidget {
     this.onCitationTap,
   });
 
-  final AppController controller;
+  final AppViewModel controller;
   final PaperDocument document;
   final String? quote;
   final bool compact;
@@ -62,7 +62,9 @@ class _ChatConversationState extends State<ChatConversation> {
       _error = null;
     });
     try {
-      final history = await widget.controller.api.getChatHistory(widget.document.id);
+      final history = await widget.controller.getChatHistory(
+        widget.document.id,
+      );
       if (!mounted) return;
       setState(() {
         _messages
@@ -100,7 +102,7 @@ class _ChatConversationState extends State<ChatConversation> {
     _scrollToBottom();
 
     try {
-      final result = await widget.controller.api.sendChat(
+      final result = await widget.controller.sendChat(
         documentId: widget.document.id,
         question: question,
         quote: widget.quote,
@@ -149,49 +151,54 @@ class _ChatConversationState extends State<ChatConversation> {
             decoration: BoxDecoration(
               color: AppColors.lavender,
               borderRadius: BorderRadius.circular(10),
-              border: const Border(left: BorderSide(color: AppColors.primary, width: 3)),
+              border: const Border(
+                left: BorderSide(color: AppColors.primary, width: 3),
+              ),
             ),
             child: Text(
               '“${widget.quote}”',
               maxLines: 4,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(fontFamily: 'serif', fontStyle: FontStyle.italic),
+              style: const TextStyle(
+                fontFamily: 'serif',
+                fontStyle: FontStyle.italic,
+              ),
             ),
           ),
         Expanded(
           child: _loadingHistory
               ? const Center(child: CircularProgressIndicator())
               : _messages.isEmpty
-                  ? EmptyState(
-                      icon: Icons.auto_awesome_outlined,
-                      title: 'Bắt đầu hỏi về tài liệu',
-                      subtitle:
-                          'Đặt câu hỏi về phương pháp, công thức hoặc nội dung trong “${widget.document.title}”.',
-                    )
-                  : ListView.builder(
-                      controller: _scroll,
-                      padding: const EdgeInsets.fromLTRB(12, 12, 12, 18),
-                      itemCount: _messages.length + (_sending ? 1 : 0),
-                      itemBuilder: (context, index) {
-                        if (_sending && index == _messages.length) {
-                          return const Align(
-                            alignment: Alignment.centerLeft,
-                            child: Padding(
-                              padding: EdgeInsets.all(12),
-                              child: SizedBox(
-                                width: 20,
-                                height: 20,
-                                child: CircularProgressIndicator(strokeWidth: 2),
-                              ),
-                            ),
-                          );
-                        }
-                        return _MessageBubble(
-                          message: _messages[index],
-                          onCitationTap: widget.onCitationTap,
-                        );
-                      },
-                    ),
+              ? EmptyState(
+                  icon: Icons.auto_awesome_outlined,
+                  title: 'Bắt đầu hỏi về tài liệu',
+                  subtitle:
+                      'Đặt câu hỏi về phương pháp, công thức hoặc nội dung trong “${widget.document.title}”.',
+                )
+              : ListView.builder(
+                  controller: _scroll,
+                  padding: const EdgeInsets.fromLTRB(12, 12, 12, 18),
+                  itemCount: _messages.length + (_sending ? 1 : 0),
+                  itemBuilder: (context, index) {
+                    if (_sending && index == _messages.length) {
+                      return const Align(
+                        alignment: Alignment.centerLeft,
+                        child: Padding(
+                          padding: EdgeInsets.all(12),
+                          child: SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          ),
+                        ),
+                      );
+                    }
+                    return _MessageBubble(
+                      message: _messages[index],
+                      onCitationTap: widget.onCitationTap,
+                    );
+                  },
+                ),
         ),
         if (_error != null)
           Container(
@@ -206,12 +213,7 @@ class _ChatConversationState extends State<ChatConversation> {
         SafeArea(
           top: false,
           child: Padding(
-            padding: EdgeInsets.fromLTRB(
-              12,
-              8,
-              12,
-              widget.compact ? 12 : 10,
-            ),
+            padding: EdgeInsets.fromLTRB(12, 8, 12, widget.compact ? 12 : 10),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
@@ -222,9 +224,9 @@ class _ChatConversationState extends State<ChatConversation> {
                     maxLines: 4,
                     textInputAction: TextInputAction.send,
                     onSubmitted: (_) => _send(),
-                    decoration: InputDecoration(
+                    decoration: const InputDecoration(
                       hintText: 'Nhập câu hỏi về tài liệu...',
-                      contentPadding: const EdgeInsets.symmetric(
+                      contentPadding: EdgeInsets.symmetric(
                         horizontal: 14,
                         vertical: 12,
                       ),
@@ -260,7 +262,9 @@ class _MessageBubble extends StatelessWidget {
   Widget build(BuildContext context) {
     final isUser = message.isUser;
     final color = isUser ? AppColors.primary : Theme.of(context).cardColor;
-    final textColor = isUser ? Colors.white : Theme.of(context).colorScheme.onSurface;
+    final textColor = isUser
+        ? Colors.white
+        : Theme.of(context).colorScheme.onSurface;
     return Align(
       alignment: isUser ? Alignment.centerRight : Alignment.centerLeft,
       child: ConstrainedBox(
@@ -298,8 +302,11 @@ class _MessageBubble extends StatelessWidget {
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(Icons.auto_awesome,
-                          size: 14, color: AppColors.primary),
+                      Icon(
+                        Icons.auto_awesome,
+                        size: 14,
+                        color: AppColors.primary,
+                      ),
                       SizedBox(width: 5),
                       Text(
                         'PaperChat AI',
@@ -325,11 +332,7 @@ class _MessageBubble extends StatelessWidget {
                 ),
               SelectableText(
                 message.content,
-                style: TextStyle(
-                  color: textColor,
-                  height: 1.48,
-                  fontSize: 14,
-                ),
+                style: TextStyle(color: textColor, height: 1.48, fontSize: 14),
               ),
               if (!isUser && message.citationPage != null) ...[
                 const SizedBox(height: 9),

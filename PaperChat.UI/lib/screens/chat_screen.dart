@@ -1,17 +1,17 @@
 import 'package:flutter/material.dart';
 
-import '../core/app_controller.dart';
 import '../core/app_theme.dart';
 import '../models/api_models.dart';
 import '../widgets/chat_conversation.dart';
 import '../widgets/common.dart';
+import '../viewmodels/app_view_model.dart';
 import 'upload_screen.dart';
 import 'reader_screen.dart';
 
 class ChatScreen extends StatelessWidget {
   const ChatScreen({super.key, required this.controller});
 
-  final AppController controller;
+  final AppViewModel controller;
 
   @override
   Widget build(BuildContext context) {
@@ -74,14 +74,18 @@ class ChatScreen extends StatelessWidget {
                         ),
                         child: Row(
                           children: [
-                            const Icon(Icons.picture_as_pdf_outlined,
-                                color: AppColors.primary, size: 19),
+                            const Icon(
+                              Icons.picture_as_pdf_outlined,
+                              color: AppColors.primary,
+                              size: 19,
+                            ),
                             const SizedBox(width: 9),
                             Expanded(
                               child: DropdownButtonHideUnderline(
                                 child: DropdownButton<String>(
                                   isExpanded: true,
-                                  value: documents.any((d) => d.id == selected?.id)
+                                  value:
+                                      documents.any((d) => d.id == selected?.id)
                                       ? selected!.id
                                       : documents.first.id,
                                   hint: const Text('Chọn tài liệu'),
@@ -89,17 +93,17 @@ class ChatScreen extends StatelessWidget {
                                       .map(
                                         (PaperDocument document) =>
                                             DropdownMenuItem<String>(
-                                          value: document.id,
-                                          child: Text(
-                                            document.title,
-                                            maxLines: 1,
-                                            overflow: TextOverflow.ellipsis,
-                                            style: const TextStyle(
-                                              fontSize: 13,
-                                              fontWeight: FontWeight.w700,
+                                              value: document.id,
+                                              child: Text(
+                                                document.title,
+                                                maxLines: 1,
+                                                overflow: TextOverflow.ellipsis,
+                                                style: const TextStyle(
+                                                  fontSize: 13,
+                                                  fontWeight: FontWeight.w700,
+                                                ),
+                                              ),
                                             ),
-                                          ),
-                                        ),
                                       )
                                       .toList(),
                                   onChanged: (id) {

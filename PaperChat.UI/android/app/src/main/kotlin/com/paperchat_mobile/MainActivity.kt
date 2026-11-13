@@ -1,4 +1,4 @@
-package com.example.paperchat_mobile
+package com.paperchat_mobile
 
 import io.flutter.embedding.android.FlutterActivity
 

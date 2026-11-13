@@ -19,12 +19,16 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
             entity.HasKey(x => x.Id);
             entity.Property(x => x.Id).HasColumnName("id").HasDefaultValueSql("gen_random_uuid()");
             entity.Property(x => x.Email).HasColumnName("email").HasMaxLength(255).IsRequired();
+            entity.Property(x => x.FirebaseUid).HasColumnName("firebaseuid").HasMaxLength(128);
             entity.Property(x => x.PasswordHash).HasColumnName("passwordhash").HasMaxLength(255).IsRequired();
             entity.Property(x => x.FullName).HasColumnName("fullname").HasMaxLength(100);
             entity.Property(x => x.StorageUsedBytes).HasColumnName("storageusedbytes").HasDefaultValue(0L);
             entity.Property(x => x.PlanType).HasColumnName("plantype").HasMaxLength(50).HasDefaultValue("FREE");
             entity.Property(x => x.CreatedAt).HasColumnName("createdat").HasColumnType("timestamp with time zone").HasDefaultValueSql("CURRENT_TIMESTAMP");
             entity.HasIndex(x => x.Email).IsUnique().HasDatabaseName("ux_users_email");
+            entity.HasIndex(x => x.FirebaseUid).IsUnique()
+                .HasFilter("\"firebaseuid\" IS NOT NULL")
+                .HasDatabaseName("ux_users_firebaseuid");
         });
 
         modelBuilder.Entity<Document>(entity =>

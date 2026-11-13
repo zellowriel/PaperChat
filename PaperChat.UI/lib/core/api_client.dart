@@ -2,39 +2,40 @@ import 'dart:typed_data';
 
 import 'package:dio/dio.dart';
 import 'package:file_picker/file_picker.dart';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
+import 'app_exception.dart';
 import '../models/api_models.dart';
 
-class ApiException implements Exception {
-  const ApiException(this.message, {this.statusCode});
+class ApiException extends AppException {
+  const ApiException(super.message, {this.statusCode});
 
-  final String message;
   final int? statusCode;
-
-  @override
-  String toString() => message;
 }
 
 class PaperChatApi {
-  PaperChatApi(String baseUrl)
-      : _dio = Dio(
-          BaseOptions(
-            baseUrl: baseUrl.replaceFirst(RegExp(r'/+$'), ''),
-            connectTimeout: const Duration(seconds: 20),
-            receiveTimeout: const Duration(seconds: 180),
-            sendTimeout: const Duration(seconds: 180),
-            headers: const {'Accept': 'application/json'},
-          ),
-        ) {
+  PaperChatApi(String baseUrl, {required Future<String?> Function() getIdToken})
+    : _dio = Dio(
+        BaseOptions(
+          baseUrl: baseUrl.replaceFirst(RegExp(r'/+$'), ''),
+          connectTimeout: const Duration(seconds: 20),
+          receiveTimeout: const Duration(seconds: 180),
+          sendTimeout: const Duration(seconds: 180),
+          headers: _headersFor(baseUrl),
+        ),
+      ) {
+    _getIdToken = getIdToken;
     _dio.interceptors.add(
       InterceptorsWrapper(
         onRequest: (options, handler) async {
-          final token = _accessToken ?? await _storage.read(key: _tokenKey);
-          if (token != null && token.isNotEmpty) {
-            options.headers['Authorization'] = 'Bearer $token';
+          try {
+            final token = await _getIdToken();
+            if (token != null && token.isNotEmpty) {
+              options.headers['Authorization'] = 'Bearer $token';
+            }
+            handler.next(options);
+          } catch (error) {
+            handler.reject(DioException(requestOptions: options, error: error));
           }
-          handler.next(options);
         },
         onError: (error, handler) {
           handler.next(error);
@@ -43,69 +44,19 @@ class PaperChatApi {
     );
   }
 
-  static const _tokenKey = 'paperchat_access_token';
-  static const _storage = FlutterSecureStorage();
-
   final Dio _dio;
-  String? _accessToken;
+  late final Future<String?> Function() _getIdToken;
 
-  Future<bool> restoreToken() async {
-    _accessToken = await _storage.read(key: _tokenKey);
-    return _accessToken != null && _accessToken!.isNotEmpty;
-  }
-
-  Future<void> _saveToken(String token, {required bool remember}) async {
-    _accessToken = token;
-    if (remember) {
-      await _storage.write(key: _tokenKey, value: token);
-    } else {
-      await _storage.delete(key: _tokenKey);
+  static Map<String, dynamic> _headersFor(String baseUrl) {
+    final headers = <String, dynamic>{'Accept': 'application/json'};
+    final host = Uri.tryParse(baseUrl)?.host;
+    if (host != null &&
+        (host.endsWith('.ngrok-free.dev') ||
+            host.endsWith('.ngrok-free.app') ||
+            host.endsWith('.ngrok.io'))) {
+      headers['ngrok-skip-browser-warning'] = '1';
     }
-  }
-
-  Future<void> logout() async {
-    _accessToken = null;
-    await _storage.delete(key: _tokenKey);
-  }
-
-  Future<AuthResult> login(
-    String email,
-    String password, {
-    required bool remember,
-  }) async {
-    try {
-      final response = await _dio.post<Map<String, dynamic>>(
-        '/api/v1/auth/login',
-        data: {'email': email.trim(), 'password': password},
-      );
-      final result = AuthResult.fromJson(response.data ?? {});
-      await _saveToken(result.accessToken, remember: remember);
-      return result;
-    } on DioException catch (error) {
-      throw _toApiException(error);
-    }
-  }
-
-  Future<AuthResult> register({
-    required String email,
-    required String password,
-    String? fullName,
-  }) async {
-    try {
-      final response = await _dio.post<Map<String, dynamic>>(
-        '/api/v1/auth/register',
-        data: {
-          'email': email.trim(),
-          'password': password,
-          'fullName': fullName?.trim(),
-        },
-      );
-      final result = AuthResult.fromJson(response.data ?? {});
-      await _saveToken(result.accessToken, remember: true);
-      return result;
-    } on DioException catch (error) {
-      throw _toApiException(error);
-    }
+    return headers;
   }
 
   Future<UserProfile> getMe() async {
@@ -117,7 +68,10 @@ class PaperChatApi {
     }
   }
 
-  Future<List<PaperDocument>> getDocuments({int page = 1, int pageSize = 50}) async {
+  Future<List<PaperDocument>> getDocuments({
+    int page = 1,
+    int pageSize = 50,
+  }) async {
     try {
       final response = await _dio.get<Map<String, dynamic>>(
         '/api/v1/documents',
@@ -126,7 +80,9 @@ class PaperChatApi {
       final rawItems = response.data?['items'] as List? ?? const [];
       return rawItems
           .whereType<Map>()
-          .map((item) => PaperDocument.fromJson(Map<String, dynamic>.from(item)))
+          .map(
+            (item) => PaperDocument.fromJson(Map<String, dynamic>.from(item)),
+          )
           .toList();
     } on DioException catch (error) {
       throw _toApiException(error);
@@ -156,10 +112,7 @@ class PaperChatApi {
 
     try {
       final form = FormData.fromMap({
-        'File': MultipartFile.fromBytes(
-          fileBytes,
-          filename: file.name,
-        ),
+        'File': MultipartFile.fromBytes(fileBytes, filename: file.name),
         if (title != null && title.trim().isNotEmpty) 'Title': title.trim(),
         if (authors != null && authors.trim().isNotEmpty)
           'Authors': authors.trim(),
@@ -209,7 +162,9 @@ class PaperChatApi {
 
   Future<List<ChatMessage>> getChatHistory(String documentId) async {
     try {
-      final response = await _dio.get<List<dynamic>>('/api/v1/chat/$documentId');
+      final response = await _dio.get<List<dynamic>>(
+        '/api/v1/chat/$documentId',
+      );
       return (response.data ?? const [])
           .whereType<Map>()
           .map((item) => ChatMessage.fromJson(Map<String, dynamic>.from(item)))

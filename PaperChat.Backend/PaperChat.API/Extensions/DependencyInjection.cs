@@ -1,3 +1,5 @@
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
 using System.Text;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
@@ -26,9 +28,42 @@ public static class DependencyInjection
         services.AddHttpContextAccessor();
         services.AddScoped<ICurrentUserService, HttpCurrentUserService>();
         services.AddScoped<ITokenService, JwtTokenService>();
+        services.AddScoped<FirebaseUserProvisioner>();
 
-        services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-            .AddJwtBearer(options =>
+        var firebaseProjectId = configuration["Firebase:ProjectId"];
+        if (string.IsNullOrWhiteSpace(firebaseProjectId))
+            throw new InvalidOperationException("Thiếu cấu hình Firebase:ProjectId.");
+
+        var firebaseIssuer = $"https://securetoken.google.com/{firebaseProjectId}";
+        services.AddAuthentication(options =>
+            {
+                options.DefaultAuthenticateScheme = "SmartBearer";
+                options.DefaultChallengeScheme = "SmartBearer";
+            })
+            .AddPolicyScheme("SmartBearer", "Firebase or legacy bearer token", options =>
+            {
+                options.ForwardDefaultSelector = context =>
+                {
+                    var authorization = context.Request.Headers.Authorization.ToString();
+                    if (!authorization.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase))
+                        return "LocalJwt";
+
+                    var token = authorization["Bearer ".Length..].Trim();
+                    var handler = new JwtSecurityTokenHandler();
+                    if (!handler.CanReadToken(token)) return "LocalJwt";
+                    try
+                    {
+                        return handler.ReadJwtToken(token).Issuer == firebaseIssuer
+                            ? "Firebase"
+                            : "LocalJwt";
+                    }
+                    catch (ArgumentException)
+                    {
+                        return "LocalJwt";
+                    }
+                };
+            })
+            .AddJwtBearer("LocalJwt", options =>
             {
                 options.TokenValidationParameters = new TokenValidationParameters
                 {
@@ -40,6 +75,55 @@ public static class DependencyInjection
                     IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwt.Key)),
                     ValidateLifetime = true,
                     ClockSkew = TimeSpan.FromSeconds(30)
+                };
+            })
+            .AddJwtBearer("Firebase", options =>
+            {
+                options.Authority = firebaseIssuer;
+                options.Audience = firebaseProjectId;
+                options.MapInboundClaims = false;
+                options.TokenValidationParameters = new TokenValidationParameters
+                {
+                    ValidateIssuer = true,
+                    ValidIssuer = firebaseIssuer,
+                    ValidateAudience = true,
+                    ValidAudience = firebaseProjectId,
+                    ValidateLifetime = true,
+                    NameClaimType = "name"
+                };
+                options.Events = new JwtBearerEvents
+                {
+                    OnTokenValidated = async context =>
+                    {
+                        var principal = context.Principal;
+                        var uid = principal?.FindFirst("user_id")?.Value
+                            ?? principal?.FindFirst("sub")?.Value;
+                        var email = principal?.FindFirst("email")?.Value;
+                        if (string.IsNullOrWhiteSpace(uid) || string.IsNullOrWhiteSpace(email))
+                        {
+                            context.Fail("Firebase token must include a user ID and email.");
+                            return;
+                        }
+
+                        var provisioner = context.HttpContext.RequestServices
+                            .GetRequiredService<FirebaseUserProvisioner>();
+                        var userId = await provisioner.GetOrCreateAsync(
+                            uid,
+                            email,
+                            principal?.FindFirst("name")?.Value,
+                            string.Equals(
+                                principal?.FindFirst("email_verified")?.Value,
+                                "true",
+                                StringComparison.OrdinalIgnoreCase),
+                            context.HttpContext.RequestAborted);
+
+                        if (principal?.Identity is ClaimsIdentity identity)
+                        {
+                            var existingId = identity.FindFirst(ClaimTypes.NameIdentifier);
+                            if (existingId is not null) identity.RemoveClaim(existingId);
+                            identity.AddClaim(new Claim(ClaimTypes.NameIdentifier, userId.ToString()));
+                        }
+                    }
                 };
             });
         services.AddAuthorization();

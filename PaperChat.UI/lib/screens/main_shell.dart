@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
-import '../core/app_controller.dart';
 import '../core/app_theme.dart';
+import '../viewmodels/app_view_model.dart';
 import 'chat_screen.dart';
 import 'library_screen.dart';
 import 'settings_screen.dart';
@@ -9,7 +9,7 @@ import 'settings_screen.dart';
 class MainShell extends StatefulWidget {
   const MainShell({super.key, required this.controller});
 
-  final AppController controller;
+  final AppViewModel controller;
 
   @override
   State<MainShell> createState() => _MainShellState();

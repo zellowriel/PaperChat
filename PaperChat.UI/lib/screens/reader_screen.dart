@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:pdfx/pdfx.dart';
 
-import '../core/app_controller.dart';
 import '../core/app_theme.dart';
 import '../core/api_client.dart';
 import '../models/api_models.dart';
 import '../widgets/chat_conversation.dart';
 import '../widgets/common.dart';
+import '../viewmodels/app_view_model.dart';
 
 class ReaderScreen extends StatefulWidget {
   const ReaderScreen({
@@ -16,7 +16,7 @@ class ReaderScreen extends StatefulWidget {
     this.initialPage,
   });
 
-  final AppController controller;
+  final AppViewModel controller;
   final PaperDocument document;
   final int? initialPage;
 
@@ -35,20 +35,21 @@ class _ReaderScreenState extends State<ReaderScreen> {
   @override
   void initState() {
     super.initState();
-    _currentPage = widget.initialPage ??
+    _currentPage =
+        widget.initialPage ??
         (widget.document.pageCount > 0
             ? ((widget.document.readingProgress / 100) *
-                        widget.document.pageCount)
-                    .round()
-                    .clamp(1, widget.document.pageCount)
-                    .toInt()
+                      widget.document.pageCount)
+                  .round()
+                  .clamp(1, widget.document.pageCount)
+                  .toInt()
             : 1);
     _loadPdf();
   }
 
   Future<void> _loadPdf() async {
     try {
-      final bytes = await widget.controller.api.downloadPdf(widget.document.id);
+      final bytes = await widget.controller.downloadPdf(widget.document.id);
       if (!mounted) return;
       final controller = PdfControllerPinch(
         document: PdfDocument.openData(bytes),
@@ -59,15 +60,19 @@ class _ReaderScreenState extends State<ReaderScreen> {
         _loading = false;
       });
     } on ApiException catch (error) {
-      if (mounted) setState(() {
-        _loading = false;
-        _error = error.message;
-      });
+      if (mounted) {
+        setState(() {
+          _loading = false;
+          _error = error.message;
+        });
+      }
     } catch (error) {
-      if (mounted) setState(() {
-        _loading = false;
-        _error = error.toString();
-      });
+      if (mounted) {
+        setState(() {
+          _loading = false;
+          _error = error.toString();
+        });
+      }
     }
   }
 
@@ -91,7 +96,7 @@ class _ReaderScreenState extends State<ReaderScreen> {
     _lastSavedProgress = progress;
     widget.controller.updateLocalProgress(widget.document.id, progress);
     try {
-      await widget.controller.api.updateReadingProgress(
+      await widget.controller.updateReadingProgress(
         widget.document.id,
         progress,
       );
@@ -123,7 +128,10 @@ class _ReaderScreenState extends State<ReaderScreen> {
                   const Expanded(
                     child: Text(
                       'Hỏi AI về tài liệu này',
-                      style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16),
+                      style: TextStyle(
+                        fontWeight: FontWeight.w800,
+                        fontSize: 16,
+                      ),
                     ),
                   ),
                   IconButton(
@@ -192,21 +200,21 @@ class _ReaderScreenState extends State<ReaderScreen> {
             child: _loading
                 ? const Center(child: CircularProgressIndicator())
                 : _error != null
-                    ? EmptyState(
-                        icon: Icons.picture_as_pdf_outlined,
-                        title: 'Không mở được PDF',
-                        subtitle: _error!,
-                        action: OutlinedButton.icon(
-                          onPressed: _loadPdf,
-                          icon: const Icon(Icons.refresh),
-                          label: const Text('Thử lại'),
-                        ),
-                      )
-                    : PdfViewPinch(
-                        controller: _pdfController!,
-                        onDocumentLoaded: _onDocumentLoaded,
-                        onPageChanged: _onPageChanged,
-                      ),
+                ? EmptyState(
+                    icon: Icons.picture_as_pdf_outlined,
+                    title: 'Không mở được PDF',
+                    subtitle: _error!,
+                    action: OutlinedButton.icon(
+                      onPressed: _loadPdf,
+                      icon: const Icon(Icons.refresh),
+                      label: const Text('Thử lại'),
+                    ),
+                  )
+                : PdfViewPinch(
+                    controller: _pdfController!,
+                    onDocumentLoaded: _onDocumentLoaded,
+                    onPageChanged: _onPageChanged,
+                  ),
           ),
           SafeArea(
             top: false,

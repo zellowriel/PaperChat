@@ -1,14 +1,14 @@
 import 'package:flutter/material.dart';
 
-import '../core/app_controller.dart';
+import '../core/app_exception.dart';
 import '../core/app_theme.dart';
-import '../core/api_client.dart';
 import '../widgets/common.dart';
+import '../viewmodels/app_view_model.dart';
 
 class AuthScreen extends StatefulWidget {
   const AuthScreen({super.key, required this.controller});
 
-  final AppController controller;
+  final AppViewModel controller;
 
   @override
   State<AuthScreen> createState() => _AuthScreenState();
@@ -38,7 +38,7 @@ class _AuthScreenState extends State<AuthScreen> {
         _password.text,
         remember: _remember,
       );
-    } on ApiException catch (error) {
+    } on AppException catch (error) {
       if (mounted) showAppMessage(context, error.message, isError: true);
     } catch (error) {
       if (mounted) showAppMessage(context, error.toString(), isError: true);
@@ -75,8 +75,11 @@ class _AuthScreenState extends State<AuthScreen> {
                           child: const Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              Icon(Icons.menu_book_rounded,
-                                  color: AppColors.primary, size: 25),
+                              Icon(
+                                Icons.menu_book_rounded,
+                                color: AppColors.primary,
+                                size: 25,
+                              ),
                               SizedBox(width: 9),
                               Text(
                                 'PAPERCHAT AI',
@@ -87,8 +90,11 @@ class _AuthScreenState extends State<AuthScreen> {
                                 ),
                               ),
                               SizedBox(width: 6),
-                              Icon(Icons.circle,
-                                  size: 8, color: Color(0xFF2563EB)),
+                              Icon(
+                                Icons.circle,
+                                size: 8,
+                                color: Color(0xFF2563EB),
+                              ),
                               SizedBox(width: 6),
                               Text('Research Suite'),
                             ],
@@ -99,7 +105,8 @@ class _AuthScreenState extends State<AuthScreen> {
                       Text(
                         'Chào mừng trở lại',
                         textAlign: TextAlign.center,
-                        style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                        style: Theme.of(context).textTheme.headlineMedium
+                            ?.copyWith(
                               fontWeight: FontWeight.w900,
                               letterSpacing: -0.8,
                             ),
@@ -136,13 +143,17 @@ class _AuthScreenState extends State<AuthScreen> {
                                 const Expanded(
                                   child: Text(
                                     'Email trường đại học / Cơ quan',
-                                    style: TextStyle(fontWeight: FontWeight.w700),
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.w700,
+                                    ),
                                   ),
                                 ),
                                 Text(
                                   '.edu  /  .ac',
                                   style: TextStyle(
-                                    color: Theme.of(context).colorScheme.primary,
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.primary,
                                     fontWeight: FontWeight.w700,
                                   ),
                                 ),
@@ -177,7 +188,9 @@ class _AuthScreenState extends State<AuthScreen> {
                               textInputAction: TextInputAction.done,
                               onFieldSubmitted: (_) => _login(),
                               decoration: InputDecoration(
-                                prefixIcon: const Icon(Icons.lock_outline_rounded),
+                                prefixIcon: const Icon(
+                                  Icons.lock_outline_rounded,
+                                ),
                                 hintText: 'Nhập mật khẩu',
                                 suffixIcon: IconButton(
                                   tooltip: _showPassword
@@ -186,9 +199,11 @@ class _AuthScreenState extends State<AuthScreen> {
                                   onPressed: () => setState(
                                     () => _showPassword = !_showPassword,
                                   ),
-                                  icon: Icon(_showPassword
-                                      ? Icons.visibility_outlined
-                                      : Icons.visibility_off_outlined),
+                                  icon: Icon(
+                                    _showPassword
+                                        ? Icons.visibility_outlined
+                                        : Icons.visibility_off_outlined,
+                                  ),
                                 ),
                               ),
                               validator: (value) => (value?.isEmpty ?? true)
@@ -205,7 +220,9 @@ class _AuthScreenState extends State<AuthScreen> {
                                   ),
                                   activeColor: AppColors.primary,
                                 ),
-                                const Expanded(child: Text('Ghi nhớ đăng nhập')),
+                                const Expanded(
+                                  child: Text('Ghi nhớ đăng nhập'),
+                                ),
                               ],
                             ),
                             const SizedBox(height: 12),
@@ -227,7 +244,9 @@ class _AuthScreenState extends State<AuthScreen> {
                             child: Text(
                               'TẠO TÀI KHOẢN',
                               style: TextStyle(
-                                color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                color: Theme.of(
+                                  context,
+                                ).colorScheme.onSurfaceVariant,
                                 fontWeight: FontWeight.w700,
                                 letterSpacing: 0.7,
                               ),
@@ -240,9 +259,8 @@ class _AuthScreenState extends State<AuthScreen> {
                       OutlinedButton.icon(
                         onPressed: () => Navigator.of(context).push(
                           MaterialPageRoute(
-                            builder: (_) => RegisterScreen(
-                              controller: widget.controller,
-                            ),
+                            builder: (_) =>
+                                RegisterScreen(controller: widget.controller),
                           ),
                         ),
                         icon: const Icon(Icons.school_outlined),
@@ -262,8 +280,11 @@ class _AuthScreenState extends State<AuthScreen> {
                       const Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Icon(Icons.verified_user_outlined,
-                              size: 17, color: AppColors.muted),
+                          Icon(
+                            Icons.verified_user_outlined,
+                            size: 17,
+                            color: AppColors.muted,
+                          ),
                           SizedBox(width: 8),
                           Flexible(
                             child: Text(
@@ -290,7 +311,7 @@ class _AuthScreenState extends State<AuthScreen> {
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key, required this.controller});
-  final AppController controller;
+  final AppViewModel controller;
 
   @override
   State<RegisterScreen> createState() => _RegisterScreenState();
@@ -323,9 +344,17 @@ class _RegisterScreenState extends State<RegisterScreen> {
         password: _password.text,
         fullName: _name.text,
       );
-      if (mounted) Navigator.of(context).popUntil((route) => route.isFirst);
-    } on ApiException catch (error) {
+      if (mounted) {
+        Navigator.of(context).popUntil((route) => route.isFirst);
+        showAppMessage(
+          context,
+          'Tài khoản đã được tạo. Hãy xác minh email trước khi đăng nhập.',
+        );
+      }
+    } on AppException catch (error) {
       if (mounted) showAppMessage(context, error.message, isError: true);
+    } catch (error) {
+      if (mounted) showAppMessage(context, error.toString(), isError: true);
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -343,13 +372,18 @@ class _RegisterScreenState extends State<RegisterScreen> {
             child: ListView(
               padding: const EdgeInsets.all(22),
               children: [
-                const Icon(Icons.menu_book_rounded,
-                    size: 46, color: AppColors.primary),
+                const Icon(
+                  Icons.menu_book_rounded,
+                  size: 46,
+                  color: AppColors.primary,
+                ),
                 const SizedBox(height: 14),
-                Text('Tham gia PaperChat',
-                    style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                          fontWeight: FontWeight.w800,
-                        )),
+                Text(
+                  'Tham gia PaperChat',
+                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
                 const SizedBox(height: 22),
                 TextFormField(
                   controller: _name,
@@ -383,12 +417,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     labelText: 'Mật khẩu (ít nhất 8 ký tự)',
                     prefixIcon: const Icon(Icons.lock_outline),
                     suffixIcon: IconButton(
-                      onPressed: () => setState(
-                        () => _showPassword = !_showPassword,
+                      onPressed: () =>
+                          setState(() => _showPassword = !_showPassword),
+                      icon: Icon(
+                        _showPassword ? Icons.visibility : Icons.visibility_off,
                       ),
-                      icon: Icon(_showPassword
-                          ? Icons.visibility
-                          : Icons.visibility_off),
                     ),
                   ),
                   validator: (value) => (value?.length ?? 0) < 8
